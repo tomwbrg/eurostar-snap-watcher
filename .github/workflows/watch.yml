@@ -43,7 +43,7 @@ jobs:
 
             for (const f of found) {
               const prefix = '${{ inputs.outbound }}' ? '[TEST] ' : '';
-              const title = `${prefix}Snap dispo : ${f.direction} ${f.earliest} – ${f.latest.slice(11)}`;
+              const title = `${prefix}Snap dispo : ${f.direction} ${f.earliest.slice(0, 10)} départ ${f.departure} (train ${f.train})`;
               if (titles.has(title)) continue;  // déjà notifié
               await github.rest.issues.create({
                 owner: context.repo.owner, repo: context.repo.repo, title,
@@ -51,7 +51,9 @@ jobs:
                 body: [
                   `@${context.repo.owner} 🚄 nouveau créneau Snap !`,
                   '',
-                  `**${f.direction}**, départ entre ${f.earliest} et ${f.latest}`,
+                  `**${f.direction}** le ${f.earliest.slice(0, 10)}`,
+                  `🕐 **Départ ${f.departure} → arrivée ${f.arrival}** (train Eurostar ${f.train})`,
+                  `Créneau Snap à choisir : ${f.earliest.slice(11)}–${f.latest.slice(11)}`,
                   '',
                   `Prix : **${f.price} €** (${f.seats} places restantes)`,
                   '',

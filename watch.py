@@ -47,10 +47,16 @@ def available_slots(slots: list | None, direction: str, url: str) -> list[dict]:
     for slot in slots or []:
         if slot.get("fare"):
             window = slot["departureWindow"]
+            # Snap n'affiche qu'un créneau, mais l'offre contient le train exact.
+            legs = slot["fare"].get("legs") or [{}]
+            first, last = legs[0].get("timing") or {}, legs[-1].get("timing") or {}
             found.append({
                 "direction": direction,
                 "earliest": window["earliest"],
                 "latest": window["latest"],
+                "train": " + ".join(l.get("serviceName") or "?" for l in legs),
+                "departure": first.get("departureTime"),
+                "arrival": last.get("arrivalTime"),
                 "price": (slot["fare"].get("prices") or {}).get("total"),
                 "seats": slot["fare"].get("seats"),
                 "url": url,
@@ -76,7 +82,7 @@ def main() -> int:
         found += available_slots(props.get("inboundTimeSlots"), "Retour Londres → Paris", url)
 
     for f in found:
-        print(f"DISPO  {f['direction']}  {f['earliest']} – {f['latest']}  {f['price']} €  ({f['seats']} places)")
+        print(f"DISPO  {f['direction']}  {f['earliest'][:10]} train {f['train']} {f['departure']} → {f['arrival']}  {f['price']} €  ({f['seats']} places)")
     if not found:
         print("Aucun créneau Snap disponible pour l'instant.")
 
