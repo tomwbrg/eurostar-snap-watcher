@@ -2,7 +2,7 @@ name: Eurostar Snap watcher
 
 on:
   schedule:
-    - cron: "*/30 * * * *"   # toutes les 30 min (GitHub peut retarder de quelques minutes)
+    - cron: "7,37 * * * *"   # toutes les 30 min, décalé des heures pleines où GitHub est saturé
   workflow_dispatch:
     inputs:
       outbound:
