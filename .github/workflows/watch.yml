@@ -2,14 +2,14 @@ name: Eurostar Snap watcher
 
 on:
   schedule:
-    - cron: "7,37 * * * *"   # toutes les 30 min, décalé des heures pleines où GitHub est saturé
+    - cron: "7,22,37,52 * * * *"   # toutes les 15 min, décalé des heures pleines où GitHub est saturé
   workflow_dispatch:
     inputs:
       outbound:
-        description: "TEST uniquement : date aller (AAAA-MM-JJ). Laisser vide = 23/10"
+        description: "TEST uniquement : date aller (AAAA-MM-JJ). Vide = celle de config.json"
         required: false
       inbounds:
-        description: "TEST uniquement : dates retour séparées par des virgules. Laisser vide = 25/10,26/10"
+        description: "TEST uniquement : dates retour séparées par des virgules. Vide = celles de config.json"
         required: false
 
 permissions:
@@ -42,7 +42,7 @@ jobs:
             const titles = new Set(existing.map(i => i.title));
 
             for (const f of found) {
-              const prefix = '${{ inputs.outbound }}' ? '[TEST] ' : '';
+              const prefix = '${{ inputs.outbound }}${{ inputs.inbounds }}' ? '[TEST] ' : '';
               const title = `${prefix}Snap dispo : ${f.direction} ${f.earliest.slice(0, 10)} départ ${f.departure} (train ${f.train})`;
               if (titles.has(title)) continue;  // déjà notifié
               await github.rest.issues.create({
@@ -55,7 +55,9 @@ jobs:
                   `🕐 **Départ ${f.departure} → arrivée ${f.arrival}** (train Eurostar ${f.train})`,
                   `Créneau Snap à choisir : ${f.earliest.slice(11)}–${f.latest.slice(11)}`,
                   '',
-                  `Prix : **${f.price} €** (${f.seats} places restantes)`,
+                  f.adults > 1
+                    ? `Prix : **${f.price} € pour ${f.adults} adultes** (${f.price_per_adult} €/pers., ${f.seats} places restantes)`
+                    : `Prix : **${f.price} €** (${f.seats} places restantes)`,
                   '',
                   `👉 [Réserver sur Snap](${f.url})`,
                 ].join('\n'),
