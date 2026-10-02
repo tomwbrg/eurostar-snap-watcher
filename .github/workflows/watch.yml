@@ -47,7 +47,10 @@ jobs:
               if (titles.has(title)) continue;  // déjà notifié
               await github.rest.issues.create({
                 owner: context.repo.owner, repo: context.repo.repo, title,
+                assignees: [context.repo.owner],  // assigner + mentionner = mail garanti
                 body: [
+                  `@${context.repo.owner} 🚄 nouveau créneau Snap !`,
+                  '',
                   `**${f.direction}**, départ entre ${f.earliest} et ${f.latest}`,
                   '',
                   `Prix : **${f.price} €** (${f.seats} places restantes)`,
