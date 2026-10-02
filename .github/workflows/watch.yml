@@ -4,6 +4,13 @@ on:
   schedule:
     - cron: "*/30 * * * *"   # toutes les 30 min (GitHub peut retarder de quelques minutes)
   workflow_dispatch:
+    inputs:
+      outbound:
+        description: "TEST uniquement : date aller (AAAA-MM-JJ). Laisser vide = 23/10"
+        required: false
+      inbounds:
+        description: "TEST uniquement : dates retour séparées par des virgules. Laisser vide = 25/10,26/10"
+        required: false
 
 permissions:
   contents: read
@@ -18,6 +25,9 @@ jobs:
 
       - name: Vérifier les disponibilités
         run: python3 watch.py
+        env:
+          OUTBOUND: ${{ inputs.outbound }}
+          INBOUNDS: ${{ inputs.inbounds }}
 
       - name: Ouvrir une issue par nouveau créneau disponible
         uses: actions/github-script@v8
@@ -32,7 +42,8 @@ jobs:
             const titles = new Set(existing.map(i => i.title));
 
             for (const f of found) {
-              const title = `Snap dispo : ${f.direction} ${f.earliest} – ${f.latest.slice(11)}`;
+              const prefix = '${{ inputs.outbound }}' ? '[TEST] ' : '';
+              const title = `${prefix}Snap dispo : ${f.direction} ${f.earliest} – ${f.latest.slice(11)}`;
               if (titles.has(title)) continue;  // déjà notifié
               await github.rest.issues.create({
                 owner: context.repo.owner, repo: context.repo.repo, title,

@@ -5,6 +5,7 @@ Sortie : écrit la liste des créneaux disponibles dans found.json
 """
 
 import json
+import os
 import re
 import sys
 import urllib.request
@@ -13,8 +14,9 @@ from datetime import date
 PARIS = "8727100"
 LONDON = "7015400"
 
-OUTBOUND = "2026-10-23"
-INBOUNDS = ["2026-10-25", "2026-10-26"]
+# Surchargeables via les variables d'environnement (lancement manuel de test).
+OUTBOUND = os.environ.get("OUTBOUND") or "2026-10-23"
+INBOUNDS = [d.strip() for d in (os.environ.get("INBOUNDS") or "2026-10-25,2026-10-26").split(",")]
 
 UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
