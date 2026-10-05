@@ -12,6 +12,11 @@ on:
         description: "TEST uniquement : dates retour séparées par des virgules. Vide = celles de config.json"
         required: false
 
+# Un seul run à la fois (cron-job.org + cron GitHub) pour éviter les issues en double.
+concurrency:
+  group: snap-watch
+  cancel-in-progress: false
+
 permissions:
   contents: read
   issues: write
