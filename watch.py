@@ -60,6 +60,13 @@ def fetch_page_props(url: str, attempts: int = 3) -> dict:
     return json.loads(m.group(1))["props"]["pageProps"]
 
 
+def is_transient(err: Exception) -> bool:
+    """Erreur passagère côté Snap (5xx, 429, réseau) : pas la peine d'alerter."""
+    if isinstance(err, urllib.error.HTTPError):
+        return err.code >= 500 or err.code == 429
+    return isinstance(err, (urllib.error.URLError, TimeoutError))
+
+
 def city(props: dict, uic: str) -> str:
     for station in props.get("stations") or []:
         if station.get("uic") == uic:
@@ -102,7 +109,14 @@ def main() -> int:
     outbound_done = False
     for inbound in INBOUNDS or [None]:
         url = search_url(OUTBOUND, inbound)
-        props = fetch_page_props(url)
+        try:
+            props = fetch_page_props(url)
+        except Exception as err:
+            if not is_transient(err):
+                raise  # blocage (403) ou site modifié : on veut le mail d'échec
+            # Snap indisponible un instant : avertissement seulement, le run suivant réessaiera.
+            print(f"::warning::Snap injoignable pour l'instant ({err}), on réessaiera au prochain passage.")
+            continue
         here, there = city(props, ORIGIN), city(props, DESTINATION)
         # L'aller est identique dans chaque recherche : on ne le compte qu'une fois.
         if not outbound_done:
