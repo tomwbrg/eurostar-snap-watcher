@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Eurostar Snap watcher",
+  "version": "1.0.0",
+  "description": "Vérifie Eurostar Snap toutes les 15 min dans ton navigateur et te prévient (notification + mail via GitHub) dès qu'un billet sort.",
+  "icons": { "128": "icon.png" },
+  "action": { "default_title": "Eurostar Snap watcher : réglages et état" },
+  "options_page": "options.html",
+  "background": { "service_worker": "background.js" },
+  "permissions": ["alarms", "notifications", "scripting", "storage"],
+  "host_permissions": [
+    "https://snap.eurostar.com/*",
+    "https://api.github.com/*",
+    "https://raw.githubusercontent.com/*"
+  ]
+}

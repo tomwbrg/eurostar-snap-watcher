@@ -1,8 +1,10 @@
 # 🚄 Eurostar Snap watcher
 
-Te prévient **par mail** dès que des billets [Eurostar Snap](https://snap.eurostar.com/fr-fr) (billets de dernière minute, jusqu'à -50 %) sortent pour **tes dates**, avec en bonus **l'heure exacte du train**, que Snap ne montre pas.
+Te prévient **par mail et par notification** dès que des billets [Eurostar Snap](https://snap.eurostar.com/fr-fr) (billets de dernière minute, jusqu'à -50 %) sortent pour **tes dates**, avec en bonus **l'heure exacte du train**, que Snap ne montre pas.
 
-Le programme tourne **gratuitement sur GitHub**, toutes les 15 minutes (grâce à [cron-job.org](https://cron-job.org)), même ordinateur éteint.
+> ⚠️ **Depuis le 13 octobre 2026, Eurostar bloque les robots**, serveurs de GitHub compris. La surveillance se fait donc **dans ton navigateur Chrome**, grâce à la petite extension fournie ici. GitHub sert à t'envoyer les alertes par mail.
+
+Il te faut : un compte GitHub (gratuit), Google Chrome, et un ordinateur allumé avec Chrome ouvert pendant la période où tu guettes les billets.
 
 > Exemple d'alerte :
 > **Aller Paris → Londres le 2026-10-07**
@@ -13,20 +15,19 @@ Le programme tourne **gratuitement sur GitHub**, toutes les 15 minutes (grâce �
 
 ---
 
-## Mise en place (10 minutes)
+## Mise en place (15 minutes)
 
 > 💡 Tu utilises Claude Code ? Ouvre ce dossier et dis-lui *« installe-moi ce watcher pour mes dates »* : le fichier [CLAUDE.md](CLAUDE.md) lui explique tout.
 
 ### 1. Copier le projet sur ton compte GitHub
 
-Sur la page du dépôt, clique sur **Use this template → Create a new repository**.
-Choisis un nom, **Public** (minutes GitHub illimitées et gratuites) ou **Private** (voir [Public ou privé ?](#public-ou-privé-)), puis valide.
+Sur la page du dépôt, clique sur **Use this template → Create a new repository**, choisis un nom, **Public** (le plus simple) ou **Private**, puis valide.
 
-> ⚠️ N'utilise pas **Fork** : sur un fork, GitHub désactive les issues et les tâches planifiées, donc tu ne recevrais rien.
+> ⚠️ N'utilise pas **Fork** : sur un fork, GitHub désactive les issues, donc tu ne recevrais pas de mail.
 
 ### 2. Mettre tes dates
 
-Dans ton nouveau dépôt, ouvre [`config.json`](config.json), clique sur le crayon ✏️ pour le modifier :
+Dans ton nouveau dépôt, ouvre [`config.json`](config.json) et clique sur le crayon ✏️ pour le modifier :
 
 ```json
 {
@@ -57,56 +58,47 @@ Dans ton nouveau dépôt, ouvre [`config.json`](config.json), clique sur le cray
 | Rotterdam Centraal | `8400530` |
 | Cologne Hbf | `8015458` |
 
-Puis **Commit changes**.
+Puis **Commit changes**. Pour changer de dates plus tard, il suffit de modifier ce fichier : l'extension le relit à chaque vérification.
 
-### 3. Tester que tout marche
+### 3. Créer une clé GitHub (pour recevoir les mails)
 
-1. Onglet **Actions** → **Eurostar Snap watcher** → **Run workflow**.
-2. Pour un test qui déclenche vraiment une alerte, mets des dates **dans les 5 prochains jours** (là où Snap a déjà des billets), par ex. aller = après-demain, retour = le jour d'après.
-3. Clique sur le bouton vert. En moins d'une minute : des issues `[TEST] Snap dispo : …` apparaissent dans l'onglet **Issues** et tu reçois un mail.
-4. Ferme les issues `[TEST]` ensuite.
-
-Pas de mail ? Vérifie tes spams, puis sur <https://github.com/settings/notifications> que **Email** est coché pour *Participating, @mentions and custom*.
-
-### 4. Vérifier toutes les 15 minutes (indispensable)
-
-GitHub lance bien le watcher tout seul, mais **en pratique seulement toutes les 3 à 6 heures** : sur les comptes gratuits, il retarde énormément les tâches planifiées. Les places Snap partant en quelques minutes, il faut un « réveil » externe, gratuit : [cron-job.org](https://cron-job.org) va appeler GitHub toutes les 15 min.
-
-**a) Créer une clé GitHub limitée à ce dépôt** : <https://github.com/settings/personal-access-tokens/new>
-- *Token name* : `snap-trigger`. *Expiration* : après la date de ton voyage.
+Sur <https://github.com/settings/personal-access-tokens/new> :
+- *Token name* : `snap-watcher`. *Expiration* : après la date de ton voyage.
 - *Repository access* : **Only select repositories**, puis choisis ton dépôt.
-- *Permissions* : **Add permissions**, tape `Actions` dans la recherche, coche **Actions**, puis passe-le en **Read and write**. *Metadata (read-only)* s'ajoute tout seul, c'est normal.
-- **Generate token**, puis copie la clé `github_pat_…`. Elle ne s'affiche qu'une fois. Ne la partage avec personne.
+- *Permissions* : **Add permissions**, tape `Issues` dans la recherche, coche **Issues**, puis passe-le en **Read and write**. *Metadata (read-only)* s'ajoute tout seul, c'est normal.
+  Dépôt **privé** : ajoute aussi **Contents** en *Read-only*.
+- **Generate token**, puis copie la clé `github_pat_…`. Elle ne s'affiche qu'une fois. **Ne la partage avec personne** (ni dans un message, ni dans une conversation avec une IA).
 
-**b) Créer le réveil** : crée un compte gratuit sur <https://cron-job.org>, puis **Create cronjob**.
-- *URL* (remplace `TON-PSEUDO` et `TON-DEPOT`) :
-  ```
-  https://api.github.com/repos/TON-PSEUDO/TON-DEPOT/actions/workflows/watch.yml/dispatches
-  ```
-- *Exécution* : **toutes les 15 minutes**.
-- Onglet **Avancé** :
-  - *Méthode* : **POST**
-  - *En-têtes* : `Authorization` = `Bearer github_pat_…` (ta clé), `Accept` = `application/vnd.github+json`, et clique sur **Add Content-Type header now**.
-  - *Corps de la demande* : `{"ref":"main"}`
-- Enregistre, puis fais un **Test run**. Tu dois obtenir **`204 No Content`**.
-  - `404` : faute de frappe dans l'URL (il faut bien `api.github.com` et `/dispatches` à la fin), ou la clé n'a pas la permission *Actions*.
-  - `401` : la clé est mal collée (il faut `Bearer ` puis un espace devant).
+### 4. Installer l'extension Chrome
 
-Dans l'onglet **Actions** de ton dépôt, une ligne *workflow_dispatch* doit maintenant apparaître toutes les 15 minutes.
+1. Sur la page de ton dépôt : **Code → Download ZIP**, puis décompresse-le (par exemple dans *Documents*).
+2. Dans Chrome, ouvre `chrome://extensions`, active le **Mode développeur** (en haut à droite), puis clique sur **Charger l'extension non empaquetée** et choisis le dossier **`extension`** qui se trouve dans le dossier décompressé.
+3. Épingle-la : icône puzzle 🧩 → épingle **Eurostar Snap watcher**. Sa page de réglages s'ouvre toute seule (sinon, clique sur son icône).
+4. Dans les réglages : *Dépôt* = `ton-pseudo/ton-depot`, *Clé GitHub* = `github_pat_…`, puis **Enregistrer**. Le cadre *Trajet surveillé* doit afficher tes dates.
+5. Clique sur **Vérifier maintenant**. Après une dizaine de secondes : *« Aucun créneau Snap pour l'instant »* (normal si les billets ne sont pas encore sortis) ou la liste des trains trouvés.
 
-### 5. C'est tout 🎉
+### 5. Tester les alertes
 
-Pour savoir si ça tourne, regarde l'onglet **Actions**. Une croix rouge isolée de temps en temps (« The job was not acquired by Runner… ») est une panne passagère de GitHub : le lancement suivant prend le relais.
+Dans les réglages de l'extension, partie **3. Tester les alertes** : choisis des dates où Snap a **déjà** des billets (regarde sur [snap.eurostar.com](https://snap.eurostar.com/fr-fr) les jours des prochaines semaines qui affichent un prix), puis **Lancer le test**. Tu dois recevoir une notification `[TEST]` sur l'ordinateur et un mail par créneau. Ferme ensuite les issues `[TEST]` dans l'onglet **Issues** de ton dépôt.
 
-**Après ton voyage**, désactive-le : supprime (ou mets en pause) le cronjob sur cron-job.org, et sur GitHub va dans **Actions** → **Eurostar Snap watcher** → **⋯** → **Disable workflow**.
+- Si macOS demande d'autoriser les notifications de Chrome, accepte.
+- Pas de mail ? Vérifie tes spams, puis sur <https://github.com/settings/notifications> que **Email** est coché pour *Participating, @mentions and custom*.
+
+### 6. Laisser tourner 🎉
+
+- **Chrome doit rester ouvert.** Fermer les fenêtres, ça va ; quitter Chrome (`Cmd+Q`), non.
+- **L'ordinateur doit rester allumé.** Branche-le, et sur Mac : *Réglages Système → Batterie → Options → Empêcher la suspension d'activité automatique sur secteur lorsque l'écran est éteint*. Écran rabattu = Mac en veille = pas de vérification.
+- Toutes les 15 min, un onglet Snap apparaît quelques secondes en arrière-plan puis se ferme : c'est l'extension qui vérifie.
+- Si Eurostar te demande de prouver que tu es humain, une notification **« Eurostar veut vérifier que tu es humain »** s'affiche : clique dessus, passe la vérification, la surveillance reprend toute seule.
+
+**Après ton voyage**, retire l'extension dans `chrome://extensions`.
 
 ---
 
 ## Comment ça marche
 
-1. **Toutes les 15 min**, cron-job.org demande à GitHub de lancer le workflow ([`.github/workflows/watch.yml`](.github/workflows/watch.yml)), qui exécute [`watch.py`](watch.py). La planification intégrée à GitHub sert de secours.
-2. Le script ouvre la page de recherche Snap pour tes dates, comme le ferait ton navigateur.
-3. Le site Snap est fait avec Next.js : chaque page contient un bloc de données caché, `<script id="__NEXT_DATA__">`, avec **toutes** les infos de l'offre. Pour chaque créneau (matin / après-midi) on y trouve :
+1. Toutes les 15 min, l'extension ([`extension/background.js`](extension/background.js)) relit ton `config.json` sur GitHub et ouvre la recherche Snap dans un onglet en arrière-plan. C'est une visite normale de ton navigateur, qui passe la vérification d'Eurostar comme quand tu vas sur le site toi-même.
+2. Le site Snap est fait avec Next.js : chaque page contient un bloc de données caché, `<script id="__NEXT_DATA__">`, avec **toutes** les infos de l'offre. Pour chaque créneau (matin / après-midi) on y trouve :
    ```
    outboundTimeSlots[i].departureWindow   → le créneau affiché par Snap (ex. 07:02–14:00)
    outboundTimeSlots[i].fare              → null s'il n'y a rien, sinon l'offre :
@@ -117,8 +109,8 @@ Pour savoir si ça tourne, regarde l'onglet **Actions**. Une croix rouge isolée
        .legs[0].timing.arrivalTime        → heure d'arrivée
    ```
    (même chose avec `inboundTimeSlots` pour le retour)
-4. Pour chaque offre trouvée, le workflow ouvre une **issue GitHub** qui t'est assignée et te mentionne : GitHub t'envoie donc un mail.
-5. Une seule alerte par train : si le même train est encore là 15 min plus tard, pas de nouveau mail. Si un autre train apparaît, nouvelle alerte.
+3. Pour chaque offre trouvée : une notification sur l'ordinateur, et une **issue GitHub** qui t'est assignée et te mentionne, donc un mail.
+4. Une seule alerte par train : si le même train est encore là 15 min plus tard, pas de nouvelle alerte. Si un autre train apparaît, nouvelle alerte.
 
 **Voir l'info toi-même :** ouvre une recherche Snap dans Chrome, `Cmd+Option+J` (Console), tape `allow pasting` + Entrée, puis colle :
 ```js
@@ -127,28 +119,40 @@ __NEXT_DATA__.props.pageProps.outboundTimeSlots.map(s => s.fare
   : "rien")
 ```
 
+### Pourquoi plus sur un serveur ?
+
+Jusqu'au 13/10/2026, le programme tournait sur les serveurs de GitHub. Eurostar a depuis mis en place une **vérification anti-robots** : les programmes sont refusés ou reçoivent un captcha. Ce projet **ne la contourne pas volontairement** : pas de résolution automatique de captcha, pas de navigateur maquillé, pas de proxys. C'est la règle d'accès d'Eurostar, et la contourner irait contre ses conditions d'utilisation (avec un risque juridique en prime). L'extension, elle, utilise ton vrai navigateur, au rythme d'une visite tous les quarts d'heure, et si un captcha apparaît, c'est toi qui y réponds.
+
 ## Bon à savoir
 
-- **Quand les billets sortent :** Snap met en vente à environ **1–2 semaines** du départ. Si tu configures une date lointaine, c'est normal de ne rien recevoir pendant un moment.
+- **Quand les billets sortent :** Snap vend jusqu'à **2 semaines** à l'avance vers ou depuis Londres (8 jours pour les autres trajets), mais **par lots**, quand il reste des places à brader. Il peut ne rien y avoir pendant des jours, puis tout un lot d'un coup.
 - **Les places partent en quelques minutes.** Réserve vite après l'alerte.
 - **Heure exacte :** c'est le train associé à l'offre au moment de la vérification. Si ce train se remplit avant ta réservation, Snap peut t'en donner un autre du même créneau. Vérifie le récapitulatif avant de payer.
-- **Sans cron-job.org**, GitHub ne lance la vérification que toutes les 3 à 6 heures (voir l'étape 4).
-- Ce n'est **pas une API officielle** : si Eurostar modifie son site, le script peut cesser de fonctionner (l'onglet Actions affichera des croix rouges et GitHub t'enverra un mail d'échec).
+- La liste « dates avec billets » du calendrier Snap n'est pas toujours à jour : seule la recherche sur une date précise fait foi.
+- Ce n'est **pas une API officielle** : si Eurostar modifie son site, l'extension peut cesser de fonctionner (son état s'affiche dans ses réglages, et elle t'enverra une notification « problème »).
 
-### Public ou privé ?
+<details>
+<summary><strong>L'ancienne méthode (GitHub Actions + cron-job.org), au cas où Eurostar lèverait le blocage</strong></summary>
 
-| | Public | Privé |
-|---|---|---|
-| Minutes GitHub Actions | illimitées | 2 000 / mois gratuites |
-| Toutes les 15 min | ✅ | ⚠️ ~2 000 min sur 3 semaines, à la limite (chaque lancement compte pour 1 min minimum) |
-| Tes dates de voyage | visibles par tous | cachées |
+Le workflow [`.github/workflows/watch.yml`](.github/workflows/watch.yml) lance [`watch.py`](watch.py), qui fait la même vérification depuis les serveurs de GitHub, même ordinateur éteint. Depuis le 13/10/2026, il est bloqué : ses lancements se terminent en vert avec l'avertissement *« Bloqué par la protection anti-robots d'Eurostar »* (pas de mail d'échec). Si Eurostar lève un jour le blocage, il reprendra tout seul.
 
-En privé, règle plutôt le cronjob de cron-job.org sur **toutes les 30 minutes**.
+GitHub ne le lance de lui-même que toutes les 3 à 6 heures. Pour 15 min, il faut un « réveil » externe : [cron-job.org](https://cron-job.org).
+
+1. Clé GitHub limitée au dépôt avec la permission **Actions : Read and write** (tu peux l'ajouter à celle de l'étape 3).
+2. Sur cron-job.org, **Create cronjob** :
+   - *URL* : `https://api.github.com/repos/TON-PSEUDO/TON-DEPOT/actions/workflows/watch.yml/dispatches`
+   - *Exécution* : toutes les 15 minutes
+   - *Avancé* : méthode **POST** ; en-têtes `Authorization` = `Bearer github_pat_…`, `Accept` = `application/vnd.github+json`, puis **Add Content-Type header now** ; corps `{"ref":"main"}`
+   - **Test run** : tu dois obtenir `204 No Content` (`404` = URL fausse ou clé sans permission *Actions* ; `401` = clé mal collée).
+
+Test manuel : onglet **Actions** → **Eurostar Snap watcher** → **Run workflow**, avec des dates qui ont des billets.
+
+</details>
 
 ## Tester en local (optionnel)
 
 ```bash
-python3 watch.py                                         # avec config.json
+python3 watch.py                                         # version serveur, avec config.json
 OUTBOUND=2026-10-07 INBOUNDS=2026-10-08 python3 watch.py # dates de test
 ```
-Aucune dépendance, Python 3.10+ suffit. Sur Mac avec le Python de python.org, si tu as une erreur `CERTIFICATE_VERIFY_FAILED` : `export SSL_CERT_FILE=/etc/ssl/cert.pem`.
+Aucune dépendance, Python 3.10+ suffit (aujourd'hui bloqué par Eurostar, voir plus haut). Sur Mac avec le Python de python.org, en cas d'erreur `CERTIFICATE_VERIFY_FAILED` : `export SSL_CERT_FILE=/etc/ssl/cert.pem`.

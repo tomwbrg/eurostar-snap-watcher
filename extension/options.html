@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Eurostar Snap watcher</title>
+  <style>
+    :root { --navy: #141e50; --yellow: #ffd600; --ok: #1a7f37; --ko: #cf222e; --muted: #57606a; }
+    body { font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 720px; margin: 32px auto; padding: 0 16px; color: #1f2328; background: #fff; }
+    h1 { display: flex; align-items: center; gap: 12px; color: var(--navy); }
+    h1 img { width: 40px; height: 40px; }
+    h2 { margin-top: 32px; font-size: 17px; color: var(--navy); }
+    label { display: block; margin: 12px 0 4px; font-weight: 600; }
+    input { width: 100%; box-sizing: border-box; padding: 8px 10px; font: inherit; border: 1px solid #d0d7de; border-radius: 6px; }
+    .row { display: flex; gap: 12px; } .row > div { flex: 1; }
+    button { margin-top: 14px; padding: 8px 14px; font: inherit; font-weight: 600; border: 0; border-radius: 6px; background: var(--navy); color: #fff; cursor: pointer; }
+    button.secondary { background: #eaeef2; color: #1f2328; }
+    button:disabled { opacity: .5; cursor: wait; }
+    .hint { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+    .box { border: 1px solid #d0d7de; border-radius: 8px; padding: 12px 14px; margin-top: 12px; background: #f6f8fa; }
+    .ok { color: var(--ok); } .ko { color: var(--ko); }
+    pre { white-space: pre-wrap; margin: 0; font-size: 13px; }
+    code { background: #eaeef2; padding: 1px 4px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1><img src="icon.png" alt="">Eurostar Snap watcher</h1>
+  <p>Toutes les 15 minutes, l'extension ouvre la recherche Snap dans un onglet en arrière-plan (il apparaît quelques secondes), lit les billets disponibles et te prévient : <strong>notification sur cet ordinateur</strong> et <strong>mail</strong> (via une issue GitHub). Chrome doit rester ouvert et l'ordinateur allumé.</p>
+
+  <h2>1. Ton dépôt GitHub</h2>
+  <label for="repo">Dépôt (celui qui contient ton <code>config.json</code>)</label>
+  <input id="repo" placeholder="ton-pseudo/eurostar-snap-watcher" autocomplete="off">
+  <label for="token">Clé GitHub</label>
+  <input id="token" type="password" placeholder="github_pat_…" autocomplete="off">
+  <p class="hint">Clé « fine-grained » limitée à ce dépôt, avec la permission <strong>Issues : Read and write</strong> (c'est ce qui envoie le mail). Elle reste stockée uniquement dans ce navigateur. Sans clé, tu n'as que les notifications sur l'ordinateur.</p>
+  <button id="save">Enregistrer</button>
+  <div class="box" id="config"><pre>Trajet surveillé : enregistre ton dépôt pour le voir ici.</pre></div>
+
+  <h2>2. État</h2>
+  <div class="box"><pre id="status">Pas encore de vérification.</pre></div>
+  <button id="checkNow" class="secondary">Vérifier maintenant</button>
+
+  <h2>3. Tester les alertes</h2>
+  <p class="hint">Choisis des dates où Snap a déjà des billets (dans les prochains jours). Tu dois recevoir une notification <code>[TEST]</code> et un mail par créneau. Ferme ensuite les issues <code>[TEST]</code> sur GitHub.</p>
+  <div class="row">
+    <div><label for="testOut">Aller</label><input id="testOut" type="date"></div>
+    <div><label for="testIn">Retour (facultatif)</label><input id="testIn" type="date"></div>
+  </div>
+  <button id="test" class="secondary">Lancer le test</button>
+  <div class="box"><pre id="testResult">—</pre></div>
+
+  <script src="options.js"></script>
+</body>
+</html>

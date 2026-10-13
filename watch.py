@@ -42,6 +42,10 @@ def search_url(outbound: str, inbound: str | None) -> str:
     return url + (f"&inbound={inbound}" if inbound else "")
 
 
+class Blocked(Exception):
+    """La protection anti-robots d'Eurostar refuse la requête (403 ou page « Client Challenge »)."""
+
+
 def fetch_page_props(url: str, attempts: int = 3) -> dict:
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept-Language": "fr-FR"})
     # Le site renvoie parfois une erreur 500 passagère : on réessaie avant d'abandonner.
@@ -50,13 +54,20 @@ def fetch_page_props(url: str, attempts: int = 3) -> dict:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 html = resp.read().decode("utf-8")
             break
+        except urllib.error.HTTPError as err:
+            if err.code == 403:
+                raise Blocked(f"HTTP 403 pour {url}") from err
+            if not is_transient(err) or attempt == attempts:
+                raise
         except (urllib.error.URLError, TimeoutError):
             if attempt == attempts:
                 raise
-            time.sleep(10 * attempt)
+        time.sleep(10 * attempt)
     m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.S)
     if not m:
-        raise RuntimeError(f"__NEXT_DATA__ introuvable (blocage WAF ?) pour {url}")
+        if "Client Challenge" in html:
+            raise Blocked(f"page de vérification anti-robots pour {url}")
+        raise RuntimeError(f"__NEXT_DATA__ introuvable (site modifié ?) pour {url}")
     return json.loads(m.group(1))["props"]["pageProps"]
 
 
@@ -111,9 +122,13 @@ def main() -> int:
         url = search_url(OUTBOUND, inbound)
         try:
             props = fetch_page_props(url)
+        except Blocked as err:
+            # Depuis le 13/10/2026, Eurostar bloque les robots : c'est l'extension Chrome qui surveille.
+            print(f"::warning::Bloqué par la protection anti-robots d'Eurostar ({err}). La surveillance passe par l'extension Chrome (voir README).")
+            break
         except Exception as err:
             if not is_transient(err):
-                raise  # blocage (403) ou site modifié : on veut le mail d'échec
+                raise  # site modifié : on veut le mail d'échec
             # Snap indisponible un instant : avertissement seulement, le run suivant réessaiera.
             print(f"::warning::Snap injoignable pour l'instant ({err}), on réessaiera au prochain passage.")
             continue
